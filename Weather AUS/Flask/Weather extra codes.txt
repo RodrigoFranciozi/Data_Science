@@ -1,0 +1,57 @@
+df_reduced = df.drop(['Evaporation','Sunshine', 'Cloud9am', 'Cloud3pm', 'RISK_MM', 'Date', 'Location'], axis=1)
+
+
+
+#Removendo categóricos que aumentariam demais a dimensão do problema depois da transformação do one-hot-encode
+df_reduced_2 = df_reduced.drop(['WindGustDir','WindDir9am', 'WindDir3pm'], axis=1)
+
+
+
+from sklearn import preprocessing # To get MinMax Scaler function
+#Normalizando a entrada
+min_max_scaler = preprocessing.MinMaxScaler()
+X_norm = pd.DataFrame( min_max_scaler.fit_transform(X) , columns = X.columns)
+
+
+
+from sklearn.metrics import accuracy_score # To calculate the score
+from sklearn.feature_selection import SelectKBest # Univariate Feature Selection
+from sklearn.feature_selection import chi2 # To apply Univariate Feature Selection
+# Initialize SelectKBest function
+UnivariateFeatureSelection = SelectKBest(chi2, k=13).fit(X_norm, Y)
+
+
+
+# Cria a lista para exibição
+diccionario = {key:value for (key, value) in zip(UnivariateFeatureSelection.scores_, X_norm.columns)}
+sorted(diccionario.items())
+
+
+
+#Camadas para o treinamento
+from tensorflow.keras import layers, Sequential
+model_top4 = Sequential( [
+layers.Dense(5, activation='relu', input_dim=4),
+layers.Dense(1,activation='sigmoid')] )
+model_top4.compile(loss='binary_crossentropy',
+              optimizer='adam',
+              metrics=['accuracy'])
+model_top4.fit( x_train.values, y_train.values, epochs=10, batch_size=100 )
+
+
+
+#Matriz de Confusão
+from sklearn.metrics import classification_report,confusion_matrix,accuracy_score
+y_pred_test = model_top4.predict(x_test.values)
+y_pred_test =(y_pred_test>0.5)
+y_pred_test
+confusion_matrix(y_test.values,y_pred_test)
+
+
+
+
+
+
+#########################################################################################################
+
+Postman: http://127.0.0.1:5000/previsao?Rainfall=0.101632&Humidity3pm=0.42&RainToday=0&Humidity9am=0.72
